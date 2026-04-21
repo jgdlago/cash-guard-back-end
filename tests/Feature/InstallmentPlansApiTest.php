@@ -7,6 +7,7 @@ use App\Models\PaymentSource;
 use App\Models\User;
 use Database\Seeders\DefaultCategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class InstallmentPlansApiTest extends TestCase
@@ -17,6 +18,7 @@ class InstallmentPlansApiTest extends TestCase
     {
         $this->seed(DefaultCategorySeeder::class);
         $user = User::factory()->create();
+        Sanctum::actingAs($user);
         $category = Category::query()->where('slug', 'cartao')->firstOrFail();
         $card = PaymentSource::create([
             'user_id' => $user->id,
@@ -25,7 +27,7 @@ class InstallmentPlansApiTest extends TestCase
             'currency_code' => 'BRL',
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/v1/installment-plans', [
+        $response = $this->postJson('/api/v1/installment-plans', [
             'payment_source_id' => $card->id,
             'category_id' => $category->id,
             'description' => 'Notebook',

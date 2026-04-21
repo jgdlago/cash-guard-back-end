@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\User;
 use Database\Seeders\DefaultCategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class CategoriesApiTest extends TestCase
@@ -16,6 +17,7 @@ class CategoriesApiTest extends TestCase
     {
         $this->seed(DefaultCategorySeeder::class);
         $user = User::factory()->create();
+        Sanctum::actingAs($user);
 
         Category::create([
             'user_id' => $user->id,
@@ -26,7 +28,7 @@ class CategoriesApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/v1/categories');
+        $response = $this->getJson('/api/v1/categories');
 
         $response->assertOk()
             ->assertJsonFragment(['slug' => 'salario'])
