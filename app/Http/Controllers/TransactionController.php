@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\TransactionType;
 use App\Http\Requests\StoreTransactionRequest;
+use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\PaymentSource;
@@ -70,6 +71,60 @@ class TransactionController extends Controller
         ]);
 
         return new TransactionResource($transaction);
+    }
+
+    public function update(UpdateTransactionRequest $request, Transaction $transaction): TransactionResource
+    {
+        abort_unless($transaction->user_id === $request->user()->id, 404);
+
+        $validated = $request->validated();
+        $paymentSourceId = $validated['payment_source_id'] ?? $transaction->payment_source_id;
+        $categoryId = $validated['category_id'] ?? $transaction->category_id;
+
+        $this->assertPaymentSourceOwnership($paymentSourceId, $request->user()->id);
+        $this->assertCategoryOwnership($categoryId, $request->user()->id);
+
+        $type = isset($validated['type'])
+            ? TransactionType::from($validated['type'])
+            : $transaction->type;
+
+        $amountInCents = array_key_exists('amount', $validated)
+            ? Money::parseToCents($validated['amount'])
+            : abs($transaction->amount_cents);
+
+        $status = $validated['status'] ?? $transaction->status->value;
+
+        $transaction->update([
+            'payment_source_id' => $paymentSourceId,
+            'category_id' => $categoryId,
+            'type' => $type,
+            'status' => $status,
+            'amount_cents' => $type === TransactionType::Expense
+                ? -abs($amountInCents)
+                : abs($amountInCents),
+            'currency_code' => $validated['currency_code'] ?? $transaction->currency_code,
+            'transaction_date' => $validated['transaction_date'] ?? $transaction->transaction_date,
+            'due_date' => array_key_exists('due_date', $validated) ? $validated['due_date'] : $transaction->due_date,
+            'posted_at' => $status === 'posted' ? ($transaction->posted_at ?? now()) : null,
+            'description' => $validated['description'] ?? $transaction->description,
+            'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : $transaction->notes,
+            'cancelled_at' => $status === 'cancelled' ? ($transaction->cancelled_at ?? now()) : null,
+        ]);
+
+        return new TransactionResource($transaction->fresh());
+    }
+
+    public function destroy(Transaction $transaction): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($transaction->user_id === request()->user()->id, 404);
+
+        $transaction->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+            'posted_at' => null,
+        ]);
+
+        return response()->json(status: 204);
     }
 
     private function assertPaymentSourceOwnership(?int $paymentSourceId, int $userId): void

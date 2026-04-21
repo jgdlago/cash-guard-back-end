@@ -48,6 +48,20 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): CategoryResource
     {
+        $parentId = $request->validated('parent_id');
+
+        if ($parentId !== null) {
+            $exists = Category::query()
+                ->whereKey($parentId)
+                ->where(function ($query) use ($request): void {
+                    $query->whereNull('user_id')
+                        ->orWhere('user_id', $request->user()->id);
+                })
+                ->exists();
+
+            abort_unless($exists, 422, 'Invalid parent category.');
+        }
+
         $category = Category::create([
             'user_id' => $request->user()->id,
             'kind' => CategoryKind::Custom,
@@ -56,7 +70,7 @@ class CategoryController extends Controller
             'slug' => Str::slug($request->validated('name')),
             'color' => $request->validated('color'),
             'icon' => $request->validated('icon'),
-            'parent_id' => $request->validated('parent_id'),
+            'parent_id' => $parentId,
             'is_active' => true,
             'display_order' => 0,
         ]);

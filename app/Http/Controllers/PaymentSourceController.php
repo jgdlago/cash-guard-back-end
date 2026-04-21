@@ -32,12 +32,23 @@ class PaymentSourceController extends Controller
     public function store(StorePaymentSourceRequest $request): PaymentSourceResource
     {
         $validated = $request->validated();
+        $parentPaymentSourceId = $validated['parent_payment_source_id'] ?? null;
+
+        if ($parentPaymentSourceId !== null) {
+            $exists = PaymentSource::query()
+                ->whereKey($parentPaymentSourceId)
+                ->where('user_id', $request->user()->id)
+                ->exists();
+
+            abort_unless($exists, 422, 'Invalid parent payment source.');
+        }
+
         $paymentSource = PaymentSource::create([
             'user_id' => $request->user()->id,
             'type' => $validated['type'],
             'name' => $validated['name'],
             'currency_code' => $validated['currency_code'] ?? $request->user()->currency_code,
-            'parent_payment_source_id' => $validated['parent_payment_source_id'] ?? null,
+            'parent_payment_source_id' => $parentPaymentSourceId,
             'credit_limit_cents' => $validated['credit_limit'] ?? null,
             'statement_closing_day' => $validated['statement_closing_day'] ?? null,
             'statement_due_day' => $validated['statement_due_day'] ?? null,

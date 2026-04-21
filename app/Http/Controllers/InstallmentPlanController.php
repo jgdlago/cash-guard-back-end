@@ -99,6 +99,21 @@ class InstallmentPlanController extends Controller
         return new InstallmentPlanResource($plan);
     }
 
+    public function destroy(InstallmentPlan $installmentPlan): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($installmentPlan->user_id === request()->user()->id, 404);
+
+        DB::transaction(function () use ($installmentPlan): void {
+            $installmentPlan->transactions()->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'posted_at' => null,
+            ]);
+        });
+
+        return response()->json(status: 204);
+    }
+
     private function assertPaymentSourceOwnership(?int $paymentSourceId, int $userId): void
     {
         if ($paymentSourceId === null) {
