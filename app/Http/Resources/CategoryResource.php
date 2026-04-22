@@ -9,6 +9,10 @@ class CategoryResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $userPreference = $this->relationLoaded('userPreference')
+            ? $this->userPreference
+            : null;
+
         return [
             'id' => $this->id,
             'kind' => $this->kind->value,
@@ -19,6 +23,8 @@ class CategoryResource extends JsonResource
             'icon' => $this->icon,
             'is_active' => $this->is_active,
             'display_order' => $this->display_order,
+            'is_hidden' => $userPreference?->is_hidden ?? false,
+            'display_order_override' => $userPreference?->display_order_override,
         ];
     }
 }

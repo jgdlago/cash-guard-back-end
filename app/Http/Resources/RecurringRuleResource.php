@@ -6,27 +6,28 @@ use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class TransactionResource extends JsonResource
+class RecurringRuleResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'type' => $this->type->value,
-            'status' => $this->status->value,
+            'frequency' => $this->frequency->value,
+            'status_on_generate' => $this->status_on_generate->value,
             'amount_cents' => $this->amount_cents,
             'amount' => Money::formatFromCents($this->amount_cents),
             'currency_code' => $this->currency_code,
-            'transaction_date' => $this->transaction_date?->toDateString(),
-            'due_date' => $this->due_date?->toDateString(),
             'description' => $this->description,
             'notes' => $this->notes,
+            'starts_on' => $this->starts_on?->toDateString(),
+            'next_run_on' => $this->next_run_on?->toDateString(),
+            'ends_on' => $this->ends_on?->toDateString(),
+            'is_active' => $this->is_active,
             'payment_source_id' => $this->payment_source_id,
             'category_id' => $this->category_id,
-            'installment_plan_id' => $this->installment_plan_id,
-            'recurring_rule_id' => $this->recurring_rule_id,
-            'installment_number' => $this->installment_number,
-            'total_installments' => $this->total_installments,
+            'last_processed_at' => $this->last_processed_at?->toAtomString(),
+            'transactions_count' => $this->whenCounted('transactions'),
         ];
     }
 }
