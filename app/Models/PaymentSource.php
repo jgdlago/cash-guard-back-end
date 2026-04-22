@@ -51,4 +51,9 @@ class PaymentSource extends Model
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function recurringRules(): HasMany
+    {
+        return $this->hasMany(RecurringRule::class);
+    }
 }

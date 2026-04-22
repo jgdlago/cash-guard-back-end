@@ -3,45 +3,45 @@
 namespace App\Models;
 
 use App\Casts\MoneyCast;
+use App\Enums\RecurringFrequency;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Transaction extends Model
+class RecurringRule extends Model
 {
     protected $fillable = [
         'user_id',
         'payment_source_id',
         'category_id',
-        'installment_plan_id',
-        'recurring_rule_id',
         'type',
-        'status',
+        'frequency',
+        'status_on_generate',
         'amount_cents',
         'currency_code',
-        'transaction_date',
-        'due_date',
-        'posted_at',
         'description',
         'notes',
-        'installment_number',
-        'total_installments',
-        'competence_month',
-        'cancelled_at',
+        'starts_on',
+        'next_run_on',
+        'ends_on',
+        'is_active',
+        'last_processed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'amount_cents' => MoneyCast::class,
-            'transaction_date' => 'date',
-            'due_date' => 'date',
-            'posted_at' => 'datetime',
-            'competence_month' => 'date',
-            'cancelled_at' => 'datetime',
+            'starts_on' => 'date',
+            'next_run_on' => 'date',
+            'ends_on' => 'date',
+            'last_processed_at' => 'datetime',
+            'is_active' => 'boolean',
             'type' => TransactionType::class,
-            'status' => TransactionStatus::class,
+            'frequency' => RecurringFrequency::class,
+            'status_on_generate' => TransactionStatus::class,
         ];
     }
 
@@ -60,13 +60,8 @@ class Transaction extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function installmentPlan(): BelongsTo
+    public function transactions(): HasMany
     {
-        return $this->belongsTo(InstallmentPlan::class);
-    }
-
-    public function recurringRule(): BelongsTo
-    {
-        return $this->belongsTo(RecurringRule::class);
+        return $this->hasMany(Transaction::class);
     }
 }

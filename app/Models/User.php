@@ -51,4 +51,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(InstallmentPlan::class);
     }
+
+    public function recurringRules(): HasMany
+    {
+        return $this->hasMany(RecurringRule::class);
+    }
+
+    public function categoryPreferences(): HasMany
+    {
+        return $this->hasMany(CategoryUserPreference::class);
+    }
 }
