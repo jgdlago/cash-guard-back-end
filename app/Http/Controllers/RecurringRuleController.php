@@ -9,6 +9,7 @@ use App\Http\Resources\RecurringRuleResource;
 use App\Models\Category;
 use App\Models\PaymentSource;
 use App\Models\RecurringRule;
+use App\Support\FinancialAudit;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -76,12 +77,17 @@ class RecurringRuleController extends Controller
             'is_active' => $validated['is_active'] ?? true,
         ]);
 
+        FinancialAudit::log($user->id, $rule, 'recurring_rule.created', null, FinancialAudit::attributes($rule), [
+            'source' => 'api',
+        ]);
+
         return new RecurringRuleResource($rule->loadCount('transactions'));
     }
 
     public function update(UpdateRecurringRuleRequest $request, RecurringRule $recurringRule): RecurringRuleResource
     {
         abort_unless($recurringRule->user_id === $request->user()->id, 404);
+        $before = FinancialAudit::attributes($recurringRule);
 
         $validated = $request->validated();
         $paymentSourceId = $validated['payment_source_id'] ?? $recurringRule->payment_source_id;
@@ -111,17 +117,36 @@ class RecurringRuleController extends Controller
             'is_active' => $validated['is_active'] ?? $recurringRule->is_active,
         ]);
 
+        FinancialAudit::log(
+            $request->user()->id,
+            $recurringRule,
+            'recurring_rule.updated',
+            $before,
+            FinancialAudit::attributes($recurringRule->fresh()),
+            ['source' => 'api']
+        );
+
         return new RecurringRuleResource($recurringRule->fresh()->loadCount('transactions'));
     }
 
     public function destroy(RecurringRule $recurringRule): JsonResponse
     {
         abort_unless($recurringRule->user_id === request()->user()->id, 404);
+        $before = FinancialAudit::attributes($recurringRule);
 
         $recurringRule->update([
             'is_active' => false,
             'ends_on' => $recurringRule->ends_on ?? now()->toDateString(),
         ]);
+
+        FinancialAudit::log(
+            request()->user()->id,
+            $recurringRule,
+            'recurring_rule.deactivated',
+            $before,
+            FinancialAudit::attributes($recurringRule->fresh()),
+            ['source' => 'api']
+        );
 
         return response()->json(status: 204);
     }

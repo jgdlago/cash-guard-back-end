@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\InstallmentPlan;
 use App\Models\PaymentSource;
 use App\Models\Transaction;
+use App\Support\FinancialAudit;
 use App\Support\Money;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -96,12 +97,18 @@ class InstallmentPlanController extends Controller
             return $plan->load(['transactions']);
         });
 
+        FinancialAudit::log($user->id, $plan, 'installment_plan.created', null, FinancialAudit::attributes($plan), [
+            'source' => 'api',
+            'transactions_created' => $plan->transactions->count(),
+        ]);
+
         return new InstallmentPlanResource($plan);
     }
 
     public function destroy(InstallmentPlan $installmentPlan): \Illuminate\Http\JsonResponse
     {
         abort_unless($installmentPlan->user_id === request()->user()->id, 404);
+        $before = FinancialAudit::attributes($installmentPlan);
 
         DB::transaction(function () use ($installmentPlan): void {
             $installmentPlan->transactions()->update([
@@ -110,6 +117,15 @@ class InstallmentPlanController extends Controller
                 'posted_at' => null,
             ]);
         });
+
+        FinancialAudit::log(
+            request()->user()->id,
+            $installmentPlan,
+            'installment_plan.cancelled',
+            $before,
+            FinancialAudit::attributes($installmentPlan->fresh()),
+            ['source' => 'api']
+        );
 
         return response()->json(status: 204);
     }

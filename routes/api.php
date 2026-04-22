@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryUserPreferenceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FinancialAuditLogController;
 use App\Http\Controllers\InstallmentPlanController;
 use App\Http\Controllers\PaymentSourceController;
 use App\Http\Controllers\RecurringRuleController;
@@ -19,6 +20,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout']);
 
         Route::get('dashboard', [DashboardController::class, 'show']);
+        Route::get('financial-audit-logs', [FinancialAuditLogController::class, 'index']);
 
         Route::get('categories', [CategoryController::class, 'index']);
         Route::post('categories', [CategoryController::class, 'store']);

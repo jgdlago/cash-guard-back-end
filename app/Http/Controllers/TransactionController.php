@@ -9,6 +9,7 @@ use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\PaymentSource;
 use App\Models\Transaction;
+use App\Support\FinancialAudit;
 use App\Support\Money;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -70,12 +71,17 @@ class TransactionController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
+        FinancialAudit::log($user->id, $transaction, 'transaction.created', null, FinancialAudit::attributes($transaction), [
+            'source' => 'api',
+        ]);
+
         return new TransactionResource($transaction);
     }
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction): TransactionResource
     {
         abort_unless($transaction->user_id === $request->user()->id, 404);
+        $before = FinancialAudit::attributes($transaction);
 
         $validated = $request->validated();
         $paymentSourceId = $validated['payment_source_id'] ?? $transaction->payment_source_id;
@@ -111,18 +117,37 @@ class TransactionController extends Controller
             'cancelled_at' => $status === 'cancelled' ? ($transaction->cancelled_at ?? now()) : null,
         ]);
 
+        FinancialAudit::log(
+            $request->user()->id,
+            $transaction,
+            'transaction.updated',
+            $before,
+            FinancialAudit::attributes($transaction->fresh()),
+            ['source' => 'api']
+        );
+
         return new TransactionResource($transaction->fresh());
     }
 
     public function destroy(Transaction $transaction): \Illuminate\Http\JsonResponse
     {
         abort_unless($transaction->user_id === request()->user()->id, 404);
+        $before = FinancialAudit::attributes($transaction);
 
         $transaction->update([
             'status' => 'cancelled',
             'cancelled_at' => now(),
             'posted_at' => null,
         ]);
+
+        FinancialAudit::log(
+            request()->user()->id,
+            $transaction,
+            'transaction.cancelled',
+            $before,
+            FinancialAudit::attributes($transaction->fresh()),
+            ['source' => 'api']
+        );
 
         return response()->json(status: 204);
     }

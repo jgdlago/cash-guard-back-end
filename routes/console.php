@@ -3,6 +3,7 @@
 use App\Enums\RecurringFrequency;
 use App\Models\RecurringRule;
 use App\Models\Transaction;
+use App\Support\FinancialAudit;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -48,7 +49,7 @@ Artisan::command('finance:process-recurring-rules {--date=}', function () {
                     ->exists();
 
                 if (! $exists) {
-                    Transaction::create([
+                    $transaction = Transaction::create([
                         'user_id' => $rule->user_id,
                         'payment_source_id' => $rule->payment_source_id,
                         'category_id' => $rule->category_id,
@@ -63,6 +64,19 @@ Artisan::command('finance:process-recurring-rules {--date=}', function () {
                         'description' => $rule->description,
                         'notes' => $rule->notes,
                     ]);
+
+                    FinancialAudit::log(
+                        $rule->user_id,
+                        $transaction,
+                        'transaction.created_from_recurring_rule',
+                        null,
+                        FinancialAudit::attributes($transaction),
+                        [
+                            'source' => 'console',
+                            'recurring_rule_id' => $rule->id,
+                            'run_date' => $runDate->toDateString(),
+                        ]
+                    );
 
                     $createdTransactions++;
                 }
@@ -80,6 +94,18 @@ Artisan::command('finance:process-recurring-rules {--date=}', function () {
                 'last_processed_at' => now(),
                 'is_active' => $rule->ends_on === null || $nextRunOn->lte($rule->ends_on),
             ]);
+
+            FinancialAudit::log(
+                $rule->user_id,
+                $rule,
+                'recurring_rule.processed',
+                null,
+                FinancialAudit::attributes($rule->fresh()),
+                [
+                    'source' => 'console',
+                    'run_date' => $runDate->toDateString(),
+                ]
+            );
         });
     }
 
