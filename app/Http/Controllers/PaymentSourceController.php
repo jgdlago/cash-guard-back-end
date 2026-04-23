@@ -16,13 +16,13 @@ class PaymentSourceController extends Controller
         $paymentSources = QueryBuilder::for(
             request()->user()->paymentSources()
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('type'),
                 AllowedFilter::exact('is_active'),
                 AllowedFilter::exact('parent_payment_source_id'),
                 AllowedFilter::partial('name'),
-            ])
-            ->allowedSorts(['display_order', 'name', 'created_at'])
+            )
+            ->allowedSorts('display_order', 'name', 'created_at')
             ->defaultSort('display_order', 'name')
             ->get();
 

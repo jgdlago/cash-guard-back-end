@@ -24,7 +24,7 @@ class RecurringRuleController extends Controller
         $rules = QueryBuilder::for(
             request()->user()->recurringRules()->withCount('transactions')
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('type'),
                 AllowedFilter::exact('frequency'),
                 AllowedFilter::exact('status_on_generate'),
@@ -38,8 +38,8 @@ class RecurringRuleController extends Controller
                     $query->whereDate('next_run_on', '<=', $value);
                 }),
                 AllowedFilter::partial('description'),
-            ])
-            ->allowedSorts(['next_run_on', 'created_at', 'amount_cents'])
+            )
+            ->allowedSorts('next_run_on', 'created_at', 'amount_cents')
             ->defaultSort('next_run_on', '-created_at')
             ->paginate(15);
 

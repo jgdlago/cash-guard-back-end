@@ -27,7 +27,7 @@ class DashboardController extends Controller
                 ->whereDate('transaction_date', '<=', $end)
                 ->where('status', '!=', 'cancelled')
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('category_id'),
                 AllowedFilter::exact('payment_source_id'),
                 AllowedFilter::exact('status'),
@@ -38,8 +38,8 @@ class DashboardController extends Controller
                 AllowedFilter::callback('to', function ($query, $value): void {
                     $query->whereDate('transaction_date', '<=', $value);
                 }),
-            ])
-            ->allowedSorts(['transaction_date', 'created_at', 'amount_cents']);
+            )
+            ->allowedSorts('transaction_date', 'created_at', 'amount_cents');
 
         $incomeCents = (clone $baseQuery)
             ->where('type', TransactionType::Income->value)

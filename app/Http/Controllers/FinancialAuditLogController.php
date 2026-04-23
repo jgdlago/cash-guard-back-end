@@ -15,7 +15,7 @@ class FinancialAuditLogController extends Controller
         $logs = QueryBuilder::for(
             FinancialAuditLog::query()->where('user_id', request()->user()->id)
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('event'),
                 AllowedFilter::exact('auditable_type'),
                 AllowedFilter::exact('auditable_id'),
@@ -25,8 +25,8 @@ class FinancialAuditLogController extends Controller
                 AllowedFilter::callback('to', function ($query, $value): void {
                     $query->whereDate('created_at', '<=', $value);
                 }),
-            ])
-            ->allowedSorts(['created_at', 'event', 'auditable_type'])
+            )
+            ->allowedSorts('created_at', 'event', 'auditable_type')
             ->defaultSort('-created_at')
             ->paginate(25);
 

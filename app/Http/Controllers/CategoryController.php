@@ -35,7 +35,7 @@ class CategoryController extends Controller
                     });
                 })
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('kind'),
                 AllowedFilter::exact('direction'),
                 AllowedFilter::exact('is_active'),
@@ -52,8 +52,8 @@ class CategoryController extends Controller
                     // The actual behavior is handled before QueryBuilder instantiation.
                 }),
                 AllowedFilter::partial('name'),
-            ])
-            ->allowedSorts(['display_order', 'name', 'created_at'])
+            )
+            ->allowedSorts('display_order', 'name', 'created_at')
             ->when(! request()->filled('sort'), function ($query) use ($user): void {
                 $query
                     ->orderByRaw(

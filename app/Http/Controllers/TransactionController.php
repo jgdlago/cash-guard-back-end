@@ -21,7 +21,7 @@ class TransactionController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $query = QueryBuilder::for(request()->user()->transactions())
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('category_id'),
                 AllowedFilter::exact('payment_source_id'),
                 AllowedFilter::exact('status'),
@@ -33,8 +33,8 @@ class TransactionController extends Controller
                     $query->whereDate('transaction_date', '<=', $value);
                 }),
                 AllowedFilter::partial('description'),
-            ])
-            ->allowedSorts(['transaction_date', 'created_at', 'amount_cents'])
+            )
+            ->allowedSorts('transaction_date', 'created_at', 'amount_cents')
             ->defaultSort('-transaction_date', '-created_at');
 
         return TransactionResource::collection($query->paginate(15));

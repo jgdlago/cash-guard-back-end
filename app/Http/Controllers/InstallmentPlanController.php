@@ -25,7 +25,7 @@ class InstallmentPlanController extends Controller
         $plans = QueryBuilder::for(
             request()->user()->installmentPlans()->with('transactions')
         )
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('category_id'),
                 AllowedFilter::exact('payment_source_id'),
                 AllowedFilter::callback('from_due_date', function ($query, $value): void {
@@ -35,8 +35,8 @@ class InstallmentPlanController extends Controller
                     $query->whereDate('first_due_date', '<=', $value);
                 }),
                 AllowedFilter::partial('description'),
-            ])
-            ->allowedSorts(['first_due_date', 'created_at', 'total_amount_cents'])
+            )
+            ->allowedSorts('first_due_date', 'created_at', 'total_amount_cents')
             ->defaultSort('-created_at')
             ->paginate(15);
 
