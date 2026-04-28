@@ -11,6 +11,7 @@ use App\Models\PaymentSource;
 use App\Models\Transaction;
 use App\Support\FinancialAudit;
 use App\Support\Money;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -63,7 +64,7 @@ class TransactionController extends Controller
             'amount_cents' => $type === TransactionType::Expense
                 ? -abs($amountInCents)
                 : abs($amountInCents),
-            'currency_code' => $validated['currency_code'] ?? $user->currency_code,
+            'currency_code' => $validated['currency_code'] ?? $user->currency_code ?? 'BRL',
             'transaction_date' => $validated['transaction_date'],
             'due_date' => $validated['due_date'] ?? null,
             'posted_at' => ($validated['status'] ?? 'posted') === 'posted' ? now() : null,
@@ -108,7 +109,7 @@ class TransactionController extends Controller
             'amount_cents' => $type === TransactionType::Expense
                 ? -abs($amountInCents)
                 : abs($amountInCents),
-            'currency_code' => $validated['currency_code'] ?? $transaction->currency_code,
+            'currency_code' => $validated['currency_code'] ?? $transaction->currency_code ?? $request->user()->currency_code ?? 'BRL',
             'transaction_date' => $validated['transaction_date'] ?? $transaction->transaction_date,
             'due_date' => array_key_exists('due_date', $validated) ? $validated['due_date'] : $transaction->due_date,
             'posted_at' => $status === 'posted' ? ($transaction->posted_at ?? now()) : null,
@@ -129,7 +130,7 @@ class TransactionController extends Controller
         return new TransactionResource($transaction->fresh());
     }
 
-    public function destroy(Transaction $transaction): \Illuminate\Http\JsonResponse
+    public function destroy(Transaction $transaction): JsonResponse
     {
         abort_unless($transaction->user_id === request()->user()->id, 404);
         $before = FinancialAudit::attributes($transaction);
