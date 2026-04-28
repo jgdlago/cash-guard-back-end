@@ -41,11 +41,11 @@ class DashboardController extends Controller
             )
             ->allowedSorts('transaction_date', 'created_at', 'amount_cents');
 
-        $incomeCents = (clone $baseQuery)
+        $incomeCents = (int) (clone $baseQuery)
             ->where('type', TransactionType::Income->value)
             ->sum('amount_cents');
 
-        $expenseCents = abs((clone $baseQuery)
+        $expenseCents = abs((int) (clone $baseQuery)
             ->where('type', TransactionType::Expense->value)
             ->sum('amount_cents'));
 
