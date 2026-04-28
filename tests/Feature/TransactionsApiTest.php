@@ -58,6 +58,48 @@ class TransactionsApiTest extends TestCase
             ->assertJsonPath('data.payment_source_id', $paymentSource->id);
     }
 
+    public function test_precognition_validates_transaction_without_creating_it(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->withPrecognition()->postJson('/api/v1/transactions', [
+            'type' => 'income',
+            'amount' => '250.00',
+            'transaction_date' => '2026-04-21',
+            'description' => 'Freela',
+        ]);
+
+        $response->assertSuccessfulPrecognition();
+        $this->assertDatabaseCount('transactions', 0);
+    }
+
+    public function test_transaction_rejects_unknown_fields_and_foreign_payment_sources(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $paymentSource = PaymentSource::create([
+            'user_id' => $otherUser->id,
+            'type' => 'wallet',
+            'name' => 'Carteira',
+            'currency_code' => 'BRL',
+        ]);
+
+        $response = $this->postJson('/api/v1/transactions', [
+            'type' => 'income',
+            'payment_source_id' => $paymentSource->id,
+            'amount' => '250.00',
+            'transaction_date' => '2026-04-21',
+            'description' => 'Freela',
+            'unexpected' => 'blocked',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['payment_source_id', 'unexpected']);
+    }
+
     public function test_it_cancels_a_transaction(): void
     {
         $user = User::factory()->create();
