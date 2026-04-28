@@ -58,4 +58,35 @@ class CategoryUserPreferencesApiTest extends TestCase
             'display_order_override' => 1,
         ]);
     }
+
+    public function test_it_rejects_preference_for_foreign_custom_category(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $category = Category::factory()->expense()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->putJson("/api/v1/categories/{$category->id}/preferences", [
+            'is_hidden' => true,
+        ]);
+
+        $response->assertNotFound();
+    }
+
+    public function test_preference_rejects_unknown_fields_and_invalid_order(): void
+    {
+        $this->seed(DefaultCategorySeeder::class);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $category = Category::query()->where('slug', 'alimentacao')->firstOrFail();
+
+        $response = $this->putJson("/api/v1/categories/{$category->id}/preferences", [
+            'display_order_override' => -1,
+            'unexpected' => 'blocked',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['display_order_override', 'unexpected']);
+    }
 }

@@ -84,4 +84,71 @@ class RecurringRulesApiTest extends TestCase
         $response->assertOk()
             ->assertJsonCount(1, 'data');
     }
+
+    public function test_it_updates_and_deactivates_recurring_rule(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $rule = RecurringRule::factory()->expense(5990)->create([
+            'user_id' => $user->id,
+            'description' => 'Streaming',
+        ]);
+
+        $update = $this->patchJson("/api/v1/recurring-rules/{$rule->id}", [
+            'type' => 'expense',
+            'amount' => '79,90',
+            'description' => 'Streaming premium',
+        ]);
+
+        $update->assertOk()
+            ->assertJsonPath('data.amount_cents', -7990)
+            ->assertJsonPath('data.description', 'Streaming premium');
+
+        $delete = $this->deleteJson("/api/v1/recurring-rules/{$rule->id}");
+        $delete->assertNoContent();
+
+        $this->assertDatabaseHas('recurring_rules', [
+            'id' => $rule->id,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_recurring_rule_rejects_foreign_source_negative_amount_and_unknown_fields(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($user);
+        $foreignSource = PaymentSource::factory()->wallet()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->postJson('/api/v1/recurring-rules', [
+            'payment_source_id' => $foreignSource->id,
+            'type' => 'expense',
+            'frequency' => 'monthly',
+            'amount' => '-59,90',
+            'description' => 'Streaming',
+            'starts_on' => '2026-04-22',
+            'unexpected' => 'blocked',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['payment_source_id', 'amount', 'unexpected']);
+    }
+
+    public function test_recurring_rule_precognition_does_not_create_rule(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->withPrecognition()->postJson('/api/v1/recurring-rules', [
+            'type' => 'expense',
+            'frequency' => 'monthly',
+            'amount' => '59,90',
+            'description' => 'Streaming',
+            'starts_on' => '2026-04-22',
+        ]);
+
+        $response->assertSuccessfulPrecognition();
+        $this->assertDatabaseMissing('recurring_rules', ['description' => 'Streaming']);
+    }
 }

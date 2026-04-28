@@ -43,4 +43,56 @@ class RecurringRulesCommandTest extends TestCase
             'next_run_on' => '2026-05-01',
         ]);
     }
+
+    public function test_it_does_not_duplicate_existing_generated_transaction(): void
+    {
+        $user = User::factory()->create();
+
+        $rule = RecurringRule::factory()->expense(3200)->create([
+            'user_id' => $user->id,
+            'description' => 'Internet',
+            'starts_on' => '2026-04-01',
+            'next_run_on' => '2026-04-01',
+        ]);
+
+        $rule->transactions()->create([
+            'user_id' => $user->id,
+            'type' => 'expense',
+            'status' => 'posted',
+            'amount_cents' => -3200,
+            'currency_code' => 'BRL',
+            'transaction_date' => '2026-04-01',
+            'description' => 'Internet',
+            'posted_at' => now(),
+        ]);
+
+        $this->artisan('finance:process-recurring-rules', ['--date' => '2026-04-01'])
+            ->assertExitCode(0);
+
+        $this->assertDatabaseCount('transactions', 1);
+        $this->assertDatabaseHas('recurring_rules', [
+            'id' => $rule->id,
+            'next_run_on' => '2026-05-01',
+        ]);
+    }
+
+    public function test_it_deactivates_rule_after_end_date(): void
+    {
+        $user = User::factory()->create();
+
+        $rule = RecurringRule::factory()->expense(3200)->create([
+            'user_id' => $user->id,
+            'starts_on' => '2026-04-01',
+            'next_run_on' => '2026-04-01',
+            'ends_on' => '2026-04-01',
+        ]);
+
+        $this->artisan('finance:process-recurring-rules', ['--date' => '2026-05-01'])
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('recurring_rules', [
+            'id' => $rule->id,
+            'is_active' => false,
+        ]);
+    }
 }

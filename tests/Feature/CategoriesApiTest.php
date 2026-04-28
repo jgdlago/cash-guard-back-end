@@ -34,4 +34,62 @@ class CategoriesApiTest extends TestCase
             ->assertJsonFragment(['slug' => 'salario'])
             ->assertJsonFragment(['slug' => 'pets']);
     }
+
+    public function test_it_creates_custom_category_and_validates_payload(): void
+    {
+        $this->seed(DefaultCategorySeeder::class);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/categories', [
+            'name' => 'Pets',
+            'direction' => 'expense',
+            'color' => '#22AACC',
+            'icon' => 'paw',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.kind', 'custom')
+            ->assertJsonPath('data.slug', 'pets');
+
+        $this->assertDatabaseHas('categories', [
+            'user_id' => $user->id,
+            'slug' => 'pets',
+            'direction' => 'expense',
+        ]);
+    }
+
+    public function test_category_rejects_foreign_parent_unknown_fields_and_invalid_color(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $foreignParent = Category::factory()->expense()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->postJson('/api/v1/categories', [
+            'name' => 'Invalid',
+            'direction' => 'expense',
+            'color' => 'red',
+            'parent_id' => $foreignParent->id,
+            'unexpected' => 'blocked',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['color', 'parent_id', 'unexpected']);
+    }
+
+    public function test_category_precognition_validates_without_creating(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->withPrecognition()->postJson('/api/v1/categories', [
+            'name' => 'Pets',
+            'direction' => 'expense',
+        ]);
+
+        $response->assertSuccessfulPrecognition();
+        $this->assertDatabaseMissing('categories', ['slug' => 'pets']);
+    }
 }
