@@ -21,10 +21,6 @@ Artisan::command('finance:process-recurring-rules {--date=}', function () {
     $rules = RecurringRule::query()
         ->where('is_active', true)
         ->whereDate('next_run_on', '<=', $runDate->toDateString())
-        ->where(function ($query) use ($runDate): void {
-            $query->whereNull('ends_on')
-                ->orWhereDate('ends_on', '>=', $runDate->toDateString());
-        })
         ->get();
 
     $createdTransactions = 0;
