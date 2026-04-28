@@ -28,7 +28,7 @@ class PaymentSourcesApiTest extends TestCase
             'statement_due_day' => 17,
         ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.name', 'Nubank')
             ->assertJsonPath('data.credit_limit_cents', 250000);
 

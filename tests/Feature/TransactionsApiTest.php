@@ -30,7 +30,7 @@ class TransactionsApiTest extends TestCase
             'description' => 'Almoço',
         ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.amount_cents', -1050)
             ->assertJsonPath('data.payment_source_id', null);
     }
@@ -54,7 +54,7 @@ class TransactionsApiTest extends TestCase
             'description' => 'Freela',
         ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.amount_cents', 25000)
             ->assertJsonPath('data.payment_source_id', $paymentSource->id);
     }

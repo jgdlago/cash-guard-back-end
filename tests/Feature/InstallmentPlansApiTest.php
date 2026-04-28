@@ -41,7 +41,7 @@ class InstallmentPlansApiTest extends TestCase
             ],
         ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.total_installments', 3)
             ->assertJsonPath('data.total_amount_cents', 300000)
             ->assertJsonCount(3, 'data.transactions')

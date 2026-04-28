@@ -29,6 +29,9 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'locale' => 'pt-BR',
+            'timezone' => 'America/Sao_Paulo',
+            'currency_code' => 'BRL',
             'remember_token' => Str::random(10),
         ];
     }

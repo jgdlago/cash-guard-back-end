@@ -48,7 +48,7 @@ class CategoriesApiTest extends TestCase
             'icon' => 'paw',
         ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.kind', 'custom')
             ->assertJsonPath('data.slug', 'pets');
 

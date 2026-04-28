@@ -40,7 +40,7 @@ class RecurringRulesApiTest extends TestCase
             'starts_on' => '2026-04-22',
         ]);
 
-        $response->assertOk()
+        $response->assertCreated()
             ->assertJsonPath('data.amount_cents', -5990)
             ->assertJsonPath('data.frequency', 'monthly')
             ->assertJsonPath('data.status_on_generate', 'pending');
