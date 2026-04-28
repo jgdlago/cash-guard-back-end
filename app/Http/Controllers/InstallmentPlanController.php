@@ -12,6 +12,7 @@ use App\Models\PaymentSource;
 use App\Models\Transaction;
 use App\Support\FinancialAudit;
 use App\Support\Money;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -56,6 +57,7 @@ class InstallmentPlanController extends Controller
         $totalInstallments = count($validated['installments']);
         $totalAmountInCents = collect($validated['installments'])
             ->sum(fn (array $installment) => abs(Money::parseToCents($installment['amount'])));
+        $currencyCode = $validated['currency_code'] ?? $user->currency_code ?? 'BRL';
 
         $plan = DB::transaction(function () use (
             $validated,
@@ -63,7 +65,8 @@ class InstallmentPlanController extends Controller
             $paymentSourceId,
             $categoryId,
             $totalInstallments,
-            $totalAmountInCents
+            $totalAmountInCents,
+            $currencyCode
         ) {
             $plan = InstallmentPlan::create([
                 'user_id' => $user->id,
@@ -72,7 +75,7 @@ class InstallmentPlanController extends Controller
                 'description' => $validated['description'],
                 'total_installments' => $totalInstallments,
                 'total_amount_cents' => $totalAmountInCents,
-                'currency_code' => $validated['currency_code'] ?? $user->currency_code,
+                'currency_code' => $currencyCode,
                 'first_due_date' => $validated['installments'][0]['due_date'],
             ]);
 
@@ -85,7 +88,7 @@ class InstallmentPlanController extends Controller
                     'type' => TransactionType::Expense,
                     'status' => TransactionStatus::Pending,
                     'amount_cents' => -abs(Money::parseToCents($installment['amount'])),
-                    'currency_code' => $validated['currency_code'] ?? $user->currency_code,
+                    'currency_code' => $currencyCode,
                     'transaction_date' => $validated['transaction_date'],
                     'due_date' => $installment['due_date'],
                     'description' => $validated['description'],
@@ -105,7 +108,7 @@ class InstallmentPlanController extends Controller
         return new InstallmentPlanResource($plan);
     }
 
-    public function destroy(InstallmentPlan $installmentPlan): \Illuminate\Http\JsonResponse
+    public function destroy(InstallmentPlan $installmentPlan): JsonResponse
     {
         abort_unless($installmentPlan->user_id === request()->user()->id, 404);
         $before = FinancialAudit::attributes($installmentPlan);
